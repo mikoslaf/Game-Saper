@@ -1,0 +1,74 @@
+html, body {
+    background-color: rgb(51, 51, 51);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+
+}
+.sapper {
+    width: 70vh;
+    height: 70vh;
+    display: flex;
+}
+
+.container {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgb(166, 166, 166);
+}
+
+.container > .field {
+    border: 1px solid rgb(166, 166, 166);
+    color: rgb(166, 166, 166);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container > .hide {
+    font-size: 0;
+}
+
+.container > .flag::before {
+    content: "🚩";
+}
+
+.container > .mine1::before {
+    content: "1";
+}
+
+.container > .mine2::before {
+    content: "2";
+}
+
+.container > .mine3::before {
+    content: "3";
+}
+
+.container > .mine4::before {
+    content: "4";
+}
+
+.container > .mine5::before {
+    content: "5";
+}
+
+.container > .mine6::before {
+    content: "6";
+}
+
+.container > .mine7::before {
+    content: "7";
+}
+
+.container > .mine8::before {
+    content: "8";
+}
+
+.container > .mine9::before {
+    content: "9";
+}
+
