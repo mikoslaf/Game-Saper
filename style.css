@@ -19,7 +19,7 @@ html, body {
     border: 1px solid rgb(166, 166, 166);
 }
 
-.container > .field {
+.container .field {
     border: 1px solid rgb(166, 166, 166);
     color: rgb(166, 166, 166);
     cursor: pointer;
@@ -35,6 +35,11 @@ html, body {
 .container > .flag::before {
     content: "🚩";
 }
+
+.container > .mine::before {
+    content: "💣";
+}
+
 
 .container > .mine1::before {
     content: "1";
