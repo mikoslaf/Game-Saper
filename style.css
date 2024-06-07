@@ -21,7 +21,8 @@ html, body {
 
 .container .field {
     border: 1px solid rgb(166, 166, 166);
-    color: rgb(166, 166, 166);
+    background-color: rgb(201, 201, 201);
+    color: rgb(34, 34, 34);
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -30,6 +31,7 @@ html, body {
 
 .container > .hide {
     font-size: 0;
+    background-color: rgb(51, 51, 51);
 }
 
 .container > .flag::before {

@@ -19,6 +19,15 @@ function init() {
       div.className = "field hide";
       // div.innerHTML = "0";
 
+      div.addEventListener("click", (e)=> {
+        //e.preventDefault();
+
+        const x = parseInt(e.target.getAttribute("x"));
+        const y = parseInt(e.target.getAttribute("y"));
+
+        console.log(e.target);
+        showField(x, y);
+      });
       div.addEventListener(
         "contextmenu",
         (e) => {
@@ -43,14 +52,61 @@ function init() {
       div.setAttribute('x', x);
       div.setAttribute('y', y);
 
-
-      const Data_mine = { mine: false, closer_mine: 0, field: div, marked: false };
+      const Data_mine = { mine: false, closer_mine: 0, field: div, marked: false, show: false};
       map[x].push(Data_mine);
       k.append(div);
     }
   }
 
   console.log(map);
+}
+
+function showAllMines() {
+  map.forEach((y) => {
+    y.forEach((e) => {
+      if (e.mine && !e.marked) {
+        e.field.classList.remove("hide");
+        e.field.classList.add("mine");
+      }
+    });
+  });
+}
+
+
+function showField(x, y) {
+  const field = map[y][x];
+  console.log(x,y, field);
+  if(field.marked){
+    return;
+  }
+  if(field.mine){
+      showAllMines(); 
+      return false;
+  } else if (field.closer_mine == 0) {
+    field.show = true;
+    field.field.classList.remove("hide");
+
+    offsetMap.forEach((off) => {
+      const chech_Y = y + off[0];
+      const chech_X = x + off[1];
+  
+      if (chech_X >= 0 && chech_Y >= 0 && chech_X < size_X && chech_Y < size_Y ) {
+        const local_field = map[chech_Y][chech_X];
+        if(local_field.closer_mine == 0 && !local_field.show)
+          showField(chech_X, chech_Y);
+        else {
+          local_field.field.classList.remove("hide");
+          //local_field.show = true;
+          local_field.field.classList.add("mine" + local_field.closer_mine);
+        }
+      }
+    });
+  } else {
+    field.show = true;
+    field.field.classList.remove("hide");
+    field.field.classList.add("mine" + field.closer_mine);
+    console.log(field);
+  }
 }
 
 function initMine() {
