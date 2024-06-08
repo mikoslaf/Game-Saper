@@ -1,64 +1,67 @@
 const size_X = 20;
 const size_Y = 20;
-const number_mine = 20;
+const number_mine = 40;
 const $ = (n) => document.querySelector(n);
-const offsetMap = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
+const offsetMap = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+];
 let map = [];
 
 function init() {
-  const k = $(".container");
-  console.log(k);
-  k.style.gridTemplateColumns = `repeat(${size_X}, 1fr)`;
-  k.style.gridTemplateRows = `repeat(${size_Y}, 1fr)`;
+  const container = $(".container");
+  container.style.gridTemplateColumns = `repeat(${size_X}, 1fr)`;
+  container.style.gridTemplateRows = `repeat(${size_Y}, 1fr)`;
 
   map = [];
-  for (let x = 0; x < size_Y; x++) {
+  for (let y = 0; y < size_Y; y++) {
     map.push([]);
-    for (let y = 0; y < size_X; y++) {
+    for (let x = 0; x < size_X; x++) {
       let div = document.createElement("div");
       div.className = "field hide";
-      // div.innerHTML = "0";
+      div.setAttribute("x", x);
+      div.setAttribute("y", y);
 
-      div.addEventListener("click", (e)=> {
-        //e.preventDefault();
-
+      div.addEventListener("click", (e) => {
         const x = parseInt(e.target.getAttribute("x"));
         const y = parseInt(e.target.getAttribute("y"));
-
-        console.log(e.target);
         showField(x, y);
       });
+
       div.addEventListener(
         "contextmenu",
         (e) => {
           e.preventDefault();
-          console.log(e.target);
-          
-          let field = map[e.target.getAttribute('y')][e.target.getAttribute('x')];
+          let field =
+            map[e.target.getAttribute("y")][e.target.getAttribute("x")];
           field.marked = !field.marked;
-
-          if (e.target.classList.contains("hide")) {
-            e.target.classList.remove("hide");
+          if (field.marked) {
             e.target.classList.add("flag");
           } else {
-            if (e.target.classList.contains("flag"))
-              e.target.classList.remove("flag");
+            e.target.classList.remove("flag");
           }
-
           return false;
         },
         false
       );
-      div.setAttribute('x', x);
-      div.setAttribute('y', y);
 
-      const Data_mine = { mine: false, closer_mine: 0, field: div, marked: false, show: false};
-      map[x].push(Data_mine);
-      k.append(div);
+      map[y].push({
+        mine: false,
+        marked: false,
+        show: false,
+        closer_mine: 0,
+        field: div,
+      });
+
+      container.appendChild(div);
     }
   }
-
-  console.log(map);
 }
 
 function showAllMines() {
@@ -72,16 +75,15 @@ function showAllMines() {
   });
 }
 
-
 function showField(x, y) {
   const field = map[y][x];
-  console.log(x,y, field);
-  if(field.marked){
+  console.log(x, y, field);
+  if (field.marked) {
     return;
   }
-  if(field.mine){
-      showAllMines(); 
-      return false;
+  if (field.mine) {
+    showAllMines();
+    return false;
   } else if (field.closer_mine == 0) {
     field.show = true;
     field.field.classList.remove("hide");
@@ -89,10 +91,15 @@ function showField(x, y) {
     offsetMap.forEach((off) => {
       const chech_Y = y + off[0];
       const chech_X = x + off[1];
-  
-      if (chech_X >= 0 && chech_Y >= 0 && chech_X < size_X && chech_Y < size_Y ) {
+
+      if (
+        chech_X >= 0 &&
+        chech_Y >= 0 &&
+        chech_X < size_X &&
+        chech_Y < size_Y
+      ) {
         const local_field = map[chech_Y][chech_X];
-        if(local_field.closer_mine == 0 && !local_field.show)
+        if (local_field.closer_mine == 0 && !local_field.show)
           showField(chech_X, chech_Y);
         else {
           local_field.field.classList.remove("hide");
@@ -105,13 +112,13 @@ function showField(x, y) {
     field.show = true;
     field.field.classList.remove("hide");
     field.field.classList.add("mine" + field.closer_mine);
-    console.log(field);
+    console.log("tu" + field);
   }
 }
 
 function initMine() {
-  if(size_X * size_Y < number_mine)
-    throw new Error("The number of mines is too high.")
+  if (size_X * size_Y < number_mine)
+    throw new Error("The number of mines is too high.");
   let count_mine = number_mine;
   while (count_mine > 0) {
     const x = Math.floor(Math.random() * size_X);
@@ -130,7 +137,7 @@ function initNumberOfMines(x, y) {
     const chech_Y = y + off[0];
     const chech_X = x + off[1];
 
-    if (chech_X >= 0 && chech_Y >= 0 && chech_X < size_X && chech_Y < size_Y ) {
+    if (chech_X >= 0 && chech_Y >= 0 && chech_X < size_X && chech_Y < size_Y) {
       map[chech_Y][chech_X].closer_mine++;
     }
   });
@@ -140,9 +147,9 @@ function ShowMap() {
   map.forEach((row) => {
     row.forEach((field) => {
       let div = field.field;
-      if(field.mine || field.closer_mine > 0) {
+      if (field.mine || field.closer_mine > 0) {
         div.classList.remove("hide");
-        if(field.mine) {
+        if (field.mine) {
           div.classList.add("mine");
         } else {
           div.classList.add("mine" + field.closer_mine);
