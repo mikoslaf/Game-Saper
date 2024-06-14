@@ -13,6 +13,7 @@ const offsetMap = [
   [1, 1],
 ];
 let map = [];
+let default_mines = { isMineGenarated: false, x: -1, y: -1 }; 
 
 function init() {
   const container = $(".container");
@@ -38,8 +39,9 @@ function init() {
         "contextmenu",
         (e) => {
           e.preventDefault();
-          let field =
-            map[e.target.getAttribute("y")][e.target.getAttribute("x")];
+          let field = map[e.target.getAttribute("y")][e.target.getAttribute("x")];
+          if( field.show)
+            return false
           field.marked = !field.marked;
           if (field.marked) {
             e.target.classList.add("flag");
@@ -77,7 +79,15 @@ function showAllMines() {
 
 function showField(x, y) {
   const field = map[y][x];
-  console.log(x, y, field);
+  //console.log(x, y, field);
+
+  if(!default_mines.isMineGenarated) {
+    default_mines.isMineGenarated = true;
+    default_mines.x = x;
+    default_mines.y = y;
+
+    initMine();
+  }
   if (field.marked) {
     return;
   }
@@ -112,7 +122,6 @@ function showField(x, y) {
     field.show = true;
     field.field.classList.remove("hide");
     field.field.classList.add("mine" + field.closer_mine);
-    console.log("tu" + field);
   }
 }
 
@@ -120,11 +129,20 @@ function initMine() {
   if (size_X * size_Y < number_mine)
     throw new Error("The number of mines is too high.");
   let count_mine = number_mine;
+  let field_ignored = [[default_mines.y, default_mines.x]];
+
+  offsetMap.forEach((off) => {
+    const chech_Y = default_mines.y + off[0];
+    const chech_X = default_mines.x + off[1];
+    field_ignored.push([chech_Y, chech_X]);
+  });
+
   while (count_mine > 0) {
     const x = Math.floor(Math.random() * size_X);
     const y = Math.floor(Math.random() * size_Y);
 
-    if (!map[y][x].mine) {
+    //console.log(field_ignored.filter(e=>e==[y,x]));
+    if (!map[y][x].mine && field_ignored.filter(e=>(e[0] == y && e[1] == x)).length == 0) {
       map[y][x].mine = true;
       count_mine--;
       initNumberOfMines(x, y);
@@ -161,6 +179,6 @@ function ShowMap() {
 
 init();
 
-initMine();
+//initMine();
 
 //ShowMap();

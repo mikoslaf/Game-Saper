@@ -30,7 +30,6 @@ html, body {
 }
 
 .container > .hide {
-    font-size: 0;
     background-color: rgb(51, 51, 51);
 }
 
