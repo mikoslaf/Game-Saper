@@ -1,6 +1,6 @@
-const size_X = 20;
-const size_Y = 20;
-const number_mine = 40;
+const size_X = 10;
+const size_Y = 10;
+const number_mine = 5;
 const $ = (n) => document.querySelector(n);
 const offsetMap = [
   [-1, -1],
@@ -13,13 +13,20 @@ const offsetMap = [
   [1, 1],
 ];
 let map = [];
-let default_mines = { isMineGenarated: false, x: -1, y: -1 }; 
+let default_mines = { isMineGenarated: false, x: -1, y: -1 };
+let number_flags = 0;
+let number_hidden_fields = (size_X * size_Y) - number_mine;
+const showScore = () => {
+  $(".score-fields").innerHTML = `Fields: ${number_hidden_fields}`;
+  $(".score-flags").innerHTML = `Flags: ${number_flags}`;
+};
 
 function init() {
   const container = $(".container");
   container.style.gridTemplateColumns = `repeat(${size_X}, 1fr)`;
   container.style.gridTemplateRows = `repeat(${size_Y}, 1fr)`;
 
+  showScore();
   map = [];
   for (let y = 0; y < size_Y; y++) {
     map.push([]);
@@ -33,21 +40,25 @@ function init() {
         const x = parseInt(e.target.getAttribute("x"));
         const y = parseInt(e.target.getAttribute("y"));
         showField(x, y);
+        showScore();
       });
 
       div.addEventListener(
         "contextmenu",
         (e) => {
           e.preventDefault();
-          let field = map[e.target.getAttribute("y")][e.target.getAttribute("x")];
-          if( field.show)
-            return false
+          let field =
+            map[e.target.getAttribute("y")][e.target.getAttribute("x")];
+          if (field.show) return false;
           field.marked = !field.marked;
           if (field.marked) {
             e.target.classList.add("flag");
+            number_flags++;
           } else {
             e.target.classList.remove("flag");
+            number_flags--;
           }
+          showScore();
           return false;
         },
         false
@@ -81,7 +92,7 @@ function showField(x, y) {
   const field = map[y][x];
   //console.log(x, y, field);
 
-  if(!default_mines.isMineGenarated) {
+  if (!default_mines.isMineGenarated) {
     default_mines.isMineGenarated = true;
     default_mines.x = x;
     default_mines.y = y;
@@ -95,7 +106,11 @@ function showField(x, y) {
     showAllMines();
     return false;
   } else if (field.closer_mine == 0) {
+    if (!field.show) {
+      number_hidden_fields--;
+    }
     field.show = true;
+
     field.field.classList.remove("hide");
 
     offsetMap.forEach((off) => {
@@ -111,17 +126,21 @@ function showField(x, y) {
         const local_field = map[chech_Y][chech_X];
         if (local_field.closer_mine == 0 && !local_field.show)
           showField(chech_X, chech_Y);
-        else {
-          local_field.field.classList.remove("hide");
-          //local_field.show = true;
+        else if (!local_field.show) {
+          number_hidden_fields--;
+          local_field.show = true;
           local_field.field.classList.add("mine" + local_field.closer_mine);
+          local_field.field.classList.remove("hide");
         }
       }
     });
   } else {
-    field.show = true;
-    field.field.classList.remove("hide");
-    field.field.classList.add("mine" + field.closer_mine);
+    if (!field.show) {
+      number_hidden_fields--;
+      field.show = true;
+      field.field.classList.remove("hide");
+      field.field.classList.add("mine" + field.closer_mine);
+    }
   }
 }
 
@@ -142,7 +161,10 @@ function initMine() {
     const y = Math.floor(Math.random() * size_Y);
 
     //console.log(field_ignored.filter(e=>e==[y,x]));
-    if (!map[y][x].mine && field_ignored.filter(e=>(e[0] == y && e[1] == x)).length == 0) {
+    if (
+      !map[y][x].mine &&
+      field_ignored.filter((e) => e[0] == y && e[1] == x).length == 0
+    ) {
       map[y][x].mine = true;
       count_mine--;
       initNumberOfMines(x, y);
