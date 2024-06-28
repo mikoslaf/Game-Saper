@@ -15,11 +15,18 @@ const offsetMap = [
 let map = [];
 let default_mines = { isMineGenarated: false, x: -1, y: -1 };
 let number_flags = 0;
-let number_hidden_fields = (size_X * size_Y) - number_mine;
+let number_hidden_fields = size_X * size_Y - number_mine;
 const showScore = () => {
+  if (number_hidden_fields == 0 && number_flags == number_mine) {
+    $(".score").innerHTML = `You Won!`;
+    $(".sapper").onclick = null;
+    start = false;
+  }
   $(".score-fields").innerHTML = `Fields: ${number_hidden_fields}`;
-  $(".score-flags").innerHTML = `Flags: ${number_flags}`;
+  $(".score-flags").innerHTML = `Flags: ${number_mine - number_flags}`;
 };
+let start = false;
+let startTime = 0; 
 
 function init() {
   const container = $(".container");
@@ -49,7 +56,8 @@ function init() {
           e.preventDefault();
           let field =
             map[e.target.getAttribute("y")][e.target.getAttribute("x")];
-          if (field.show) return false;
+          if (field.show || (!field.marked && number_flags >= number_mine))
+            return false;
           field.marked = !field.marked;
           if (field.marked) {
             e.target.classList.add("flag");
@@ -97,6 +105,9 @@ function showField(x, y) {
     default_mines.x = x;
     default_mines.y = y;
 
+    start = true;
+    startTime = new Date();
+
     initMine();
   }
   if (field.marked) {
@@ -104,6 +115,9 @@ function showField(x, y) {
   }
   if (field.mine) {
     showAllMines();
+    $(".score").innerHTML = `You Lost!`;
+    $(".sapper").onclick = null;
+    start = false;
     return false;
   } else if (field.closer_mine == 0) {
     if (!field.show) {
@@ -198,6 +212,14 @@ function ShowMap() {
     });
   });
 }
+
+setInterval(() => {
+  if(start) {
+    let currentTime = new Date();
+    let second = ((currentTime - startTime)/1000).toFixed(0);
+    $(".time").innerHTML = second.padStart(3, "0");
+  }
+}, 500);
 
 init();
 
