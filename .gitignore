@@ -1,1 +1,6 @@
 script_copy.js
+node_modules
+server_support.js
+.env
+key.crt
+key.key
