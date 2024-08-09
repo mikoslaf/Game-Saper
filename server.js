@@ -34,7 +34,18 @@ const io = socketio(server, {
   },
 });
 
-let clientDB = Map();
+let clientDB = {};
+
+const offsetMap = [
+  [-1, -1],
+  [-1, 0],
+  [-1, 1],
+  [0, -1],
+  [0, 1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+];
 
 // CID('idsoketu') z ClientDB.filter(e=>e.socketid == 'idsoketu')[0]
 const CID = (socketid) => clientDB.filter((e) => e.socketid == socketid)[0];
@@ -52,123 +63,54 @@ function findClientById(socketList, clientId) {
   return null; // Zwróć null, jeśli klient o danym id nie został znaleziony
 }
 
-function loadmesseges(place) {
-  db.all(
-    'SELECT * FROM messeges WHERE place = "' + place + '" ORDER BY data DESC LIMIT 50',
-    (err, row) => {
-      if (err) {
-        console.error("Błąd podczas wykonywania zapytania:", err);
-        return;
-      }
-
-      if (row) {
-        io.sockets.emit("loadmesseges", place, row);
-      }
-    }
-  );
-}
-
 io.on("connection", (client) => {
   console.log("Klient nawiązał połączenie", client.id);
 
-  if(!clientDB.has(client.id)) {
-    clientDB.set(client.id, {
+  
+  if(!(client.id in clientDB)) {
+    clientDB = {...clientDB, [client.id]: 
+      {
       map: [],
       number_flags: 0,
       number_hidden_fields: 0, 
-    });
+      },
+    }
   }
 
-  client.on("initMap", (sizeX, sizeY, numberMine) => {
-      
+  client.on("initMap", (map) => {
+    clientDB[client.id].map = map;
+    io.sockets.emit("loadMap", clientDB[client.id].map);
   });
 
-  // client.on("login", (name, password) => {
-  //   console.log("Loguje się " + name);
-  //   db.get(
-  //     'SELECT name, password FROM users WHERE name = "' + name + '"',
-  //     (err, row) => {
-  //       if (err) {
-  //         console.error("Błąd podczas wykonywania zapytania:", err);
-  //         return;
-  //       }
-
-  //       if (row) {
-  //         if (row.password == password) io.sockets.emit("loginIN", name);
-  //         else io.sockets.emit("loginerror");
-  //       } else {
-  //         const new_accont = db.prepare(
-  //           "INSERT INTO users (name, password) VALUES (?, ?)"
-  //         );
-  //         new_accont.run(name, password);
-  //         new_accont.finalize();
-  //         io.sockets.emit("loginIN", name);
-  //       }
-  //     }
-  //   );
-  // });
-
-  // client.on("wiadomosc", (wiadomosc, userid) => {
-  //   let client = CID(client.id);
-  //   if (client) {
-
-  //     //console.log(moment(new Date()).format('YYYY-MM-DD HH:mm:ss'));
-
-  //     const current_date = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
+  client.on("initMine", (numberMine, field_ignored, callaback) => {
+    const sizeX = clientDB[client.id].map[0].length;
+    const sizeY = clientDB[client.id].map.length;
+  
+    while (numberMine > 0) {
+      const x = Math.floor(Math.random() * sizeX);
+      const y = Math.floor(Math.random() * sizeY);
+  
+      //console.log(field_ignored.filter(e=>e==[y,x]));
+      if (
+        !clientDB[client.id].map[y][x].mine &&
+        field_ignored.filter((e) => e[0] == y && e[1] == x).length == 0
+      ) {
+        clientDB[client.id].map[y][x].mine = true;
+        numberMine--;
+        offsetMap.forEach((off) => {
+          const chech_Y = y + off[0];
+          const chech_X = x + off[1];
       
-  //     if (userid == "Wszyscy") {
-  //       io.sockets.emit("wiadomosc", wiadomosc, client.Klient, current_date);
-
-  //       const new_messeg = db.prepare(
-  //         "INSERT INTO messeges (sender, place, messege, data) VALUES (?, ?, ?, ?)"
-  //       );
-  //       new_messeg.run(client.Klient, "Wszyscy", wiadomosc, current_date);
-  //       new_messeg.finalize();
-
-
-  //     } else {
-  //       let odbiorca = KID(userid);
-  //       if (odbiorca) {
-  //         const foundSocket = findClientById(io.sockets.sockets, userid);
-  //         if (foundSocket)
-  //           foundSocket.emit("wiadomosc", wiadomosc, client.Klient, current_date, true);
-  //         client.emit("wiadomosc", wiadomosc, client.Klient, current_date);
-
-  //         const new_messeg = db.prepare(
-  //           "INSERT INTO messeges (sender, place, messege, data) VALUES (?, ?, ?, ?)"
-  //         );
-  //         new_messeg.run(client.Klient, odbiorca.Klient, wiadomosc, current_date);
-  //         new_messeg.finalize();
-  //       }
-  //     }
-  //   }
-  // });
-
-  // client.on("witaj", (klientNazwa, idKlienta) => {
-  //   console.log("Witaj", klientNazwa, idKlienta);
-  //   if (!idKlienta) return;
-  //   if (!klientNazwa) return;
-
-  //   let client = KID(idKlienta);
-  //   //   console.log(client);
-  //   if (!client) {
-  //     clientDB.push({
-  //       Klient: klientNazwa,
-  //       id: idKlienta,
-  //       socketid: client.id,
-  //     });
-  //   } else {
-  //     client.Klient = klientNazwa;
-  //     client.socketid = client.id;
-  //   }
-  //   // console.log("Client BD", ClientDB);
-  //   loadmesseges("Wszyscy");
-  //   io.sockets.emit("goscie", clientDB);
-  // });
-
-  // client.on("loadmessegs_server", (place) => {
-  //   loadmesseges(place);
-  // });
+          if (chech_X >= 0 && chech_Y >= 0 && chech_X < sizeX && chech_Y < sizeY) {
+            clientDB[client.id].map[chech_Y][chech_X].closer_mine++;
+          }
+        });
+      }
+    }
+    // console.log(clientDB[client.id].map);
+    callaback(clientDB[client.id].map)
+    //io.sockets.emit("loadMap", clientDB[client.id].map);
+  });
 });
 
 /**

@@ -1,5 +1,4 @@
 //import { uuid } from 'uuidv4';
-
 //setCookie("sessionId", uuid())
 
 const socket = io("https:///");
@@ -26,9 +25,10 @@ const showScore = () => {
     $(".score").innerHTML = `You Won!`;
     $(".sapper").onclick = null;
     start = false;
+  } else if(start || startTime == 0){
+    $(".score-fields").innerHTML = `Fields: ${numberHiddenFields}`;
+    $(".score-flags").innerHTML = `Flags: ${numberMine - numberFlags}`;
   }
-  $(".score-fields").innerHTML = `Fields: ${numberHiddenFields}`;
-  $(".score-flags").innerHTML = `Flags: ${numberMine - numberFlags}`;
 };
 let start = false;
 let startTime = 0; 
@@ -47,12 +47,13 @@ function init() {
       div.className = "field hide";
       div.setAttribute("x", x);
       div.setAttribute("y", y);
+      const newId = x.toString() + "&" + y.toString();
+      div.setAttribute("id", newId);
 
       div.addEventListener("click", (e) => {
         const x = parseInt(e.target.getAttribute("x"));
         const y = parseInt(e.target.getAttribute("y"));
         showField(x, y);
-        showScore();
       });
 
       div.addEventListener(
@@ -82,26 +83,28 @@ function init() {
         marked: false,
         show: false,
         closer_mine: 0,
-        field: div,
+        field: newId,
       });
-
+      
       container.appendChild(div);
     }
   }
+  socket.emit("initMap", map);
 }
 
 function showAllMines() {
   map.forEach((y) => {
     y.forEach((e) => {
       if (e.mine && !e.marked) {
-        e.field.classList.remove("hide");
-        e.field.classList.add("mine");
+        const element = document.getElementById(e.field);
+        element.classList.remove("hide");
+        element.classList.add("mine");
       }
     });
   });
 }
 
-function showField(x, y) {
+async function showField(x, y) {
   const field = map[y][x];
   //console.log(x, y, field);
 
@@ -113,7 +116,7 @@ function showField(x, y) {
     start = true;
     startTime = new Date();
 
-    initMine();
+    await initMine();
   }
   if (field.marked) {
     return;
@@ -129,8 +132,8 @@ function showField(x, y) {
       numberHiddenFields--;
     }
     field.show = true;
-
-    field.field.classList.remove("hide");
+    const element = document.getElementById(field.field);
+    element.classList.remove("hide");
 
     offsetMap.forEach((off) => {
       const chech_Y = y + off[0];
@@ -148,8 +151,9 @@ function showField(x, y) {
         else if (!local_field.show) {
           numberHiddenFields--;
           local_field.show = true;
-          local_field.field.classList.add("mine" + local_field.closer_mine);
-          local_field.field.classList.remove("hide");
+          const localElement = document.getElementById(local_field.field);
+          localElement.classList.add("mine" + local_field.closer_mine);
+          localElement.classList.remove("hide");
         }
       }
     });
@@ -157,39 +161,50 @@ function showField(x, y) {
     if (!field.show) {
       numberHiddenFields--;
       field.show = true;
-      field.field.classList.remove("hide");
-      field.field.classList.add("mine" + field.closer_mine);
+      const element = document.getElementById(field.field);
+      element.classList.remove("hide");
+      element.classList.add("mine" + field.closer_mine);
     }
   }
+  showScore();
 }
 
-function initMine() {
+async function initMine() {
   if (sizeX * sizeY < numberMine)
     throw new Error("The number of mines is too high.");
-  let count_mine = numberMine;
-  let field_ignored = [[default_mines.y, default_mines.x]];
 
+  let field_ignored = [[default_mines.y, default_mines.x]];
+  
   offsetMap.forEach((off) => {
     const chech_Y = default_mines.y + off[0];
     const chech_X = default_mines.x + off[1];
     field_ignored.push([chech_Y, chech_X]);
   });
+  
+  
+  return new Promise((resolve) => {
+    socket.emit('initMine', numberMine, field_ignored, (response) => {
+      console.log("back");
+      map = response;
+      resolve();
+    });
+  });
+} 
+  // while (count_mine > 0) {
+  //   const x = Math.floor(Math.random() * sizeX);
+  //   const y = Math.floor(Math.random() * sizeY);
+    
+  //   //console.log(field_ignored.filter(e=>e==[y,x]));
+  //   if (
+  //     !map[y][x].mine &&
+  //     field_ignored.filter((e) => e[0] == y && e[1] == x).length == 0
+  //   ) {
+  //     map[y][x].mine = true;
+  //     count_mine--;
+  //     initNumberOfMines(x, y);
+  //   }
+  // }
 
-  while (count_mine > 0) {
-    const x = Math.floor(Math.random() * sizeX);
-    const y = Math.floor(Math.random() * sizeY);
-
-    //console.log(field_ignored.filter(e=>e==[y,x]));
-    if (
-      !map[y][x].mine &&
-      field_ignored.filter((e) => e[0] == y && e[1] == x).length == 0
-    ) {
-      map[y][x].mine = true;
-      count_mine--;
-      initNumberOfMines(x, y);
-    }
-  }
-}
 
 function initNumberOfMines(x, y) {
   offsetMap.forEach((off) => {
@@ -205,7 +220,7 @@ function initNumberOfMines(x, y) {
 function ShowMap() {
   map.forEach((row) => {
     row.forEach((field) => {
-      let div = field.field;
+      let div = document.getElementById(field.field);
       if (field.mine || field.closer_mine > 0) {
         div.classList.remove("hide");
         if (field.mine) {
@@ -232,9 +247,7 @@ init();
 
 //ShowMap();
 
-// function setCookie(cName, cValue) {
-//   let date = new Date();
-//   date.setTime(date.getTime() + (24 * 60 * 60 * 1000));
-//   const expires = "expires=" + date.toUTCString();
-//   document.cookie = cName + "=" + cValue + "; " + expires + "; path=/";
-// }
+socket.on("loadMap", (serverMap) => {
+  map = serverMap;
+  console.log("jest");
+});
