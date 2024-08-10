@@ -1,10 +1,7 @@
-//import { uuid } from 'uuidv4';
-//setCookie("sessionId", uuid())
-
 const socket = io("https:///");
-const sizeX = 5;
-const sizeY = 5;
-const numberMine = 20;
+const sizeX = 10;
+const sizeY = 10;
+const numberMine = 10;
 const $ = (n) => document.querySelector(n);
 const offsetMap = [
   [-1, -1],
@@ -18,27 +15,14 @@ const offsetMap = [
 ];
 let map = [];
 let default_mines = { isMineGenarated: false, x: -1, y: -1 };
-let numberFlags = 0;
-let numberHiddenFields = sizeX * sizeY - numberMine;
-const showScore = () => {
-  if (numberHiddenFields == 0 && numberFlags == numberMine) {
-    $(".score").innerHTML = `You Won!`;
-    $(".sapper").onclick = null;
-    start = false;
-  } else if(start || startTime == 0){
-    $(".score-fields").innerHTML = `Fields: ${numberHiddenFields}`;
-    $(".score-flags").innerHTML = `Flags: ${numberMine - numberFlags}`;
-  }
-};
 let start = false;
-let startTime = 0; 
+let startTime = 0;
 
 function init() {
   const container = $(".container");
   container.style.gridTemplateColumns = `repeat(${sizeX}, 1fr)`;
   container.style.gridTemplateRows = `repeat(${sizeY}, 1fr)`;
 
-  showScore();
   map = [];
   for (let y = 0; y < sizeY; y++) {
     map.push([]);
@@ -60,18 +44,11 @@ function init() {
         "contextmenu",
         (e) => {
           e.preventDefault();
-          let field =
-            map[e.target.getAttribute("y")][e.target.getAttribute("x")];
-          if (field.show || (!field.marked && numberFlags >= numberMine))
-            return false;
-          field.marked = !field.marked;
-          if (field.marked) {
-            e.target.classList.add("flag");
-            numberFlags++;
-          } else {
-            e.target.classList.remove("flag");
-            numberFlags--;
-          }
+          socket.emit("updateFlag", x, y, (response) => {
+            if (response) e.target.classList.add("flag");
+            else e.target.classList.remove("flag");
+          });
+
           showScore();
           return false;
         },
@@ -85,29 +62,15 @@ function init() {
         closer_mine: 0,
         field: newId,
       });
-      
+
       container.appendChild(div);
     }
   }
-  socket.emit("initMap", map);
-}
-
-function showAllMines() {
-  map.forEach((y) => {
-    y.forEach((e) => {
-      if (e.mine && !e.marked) {
-        const element = document.getElementById(e.field);
-        element.classList.remove("hide");
-        element.classList.add("mine");
-      }
-    });
-  });
+  socket.emit("initMap", map, numberMine);
+  showScore();
 }
 
 async function showField(x, y) {
-  const field = map[y][x];
-  console.log("field", x, y);
-  
   if (!default_mines.isMineGenarated) {
     default_mines.isMineGenarated = true;
     default_mines.x = x;
@@ -118,32 +81,22 @@ async function showField(x, y) {
 
     await initMine();
   }
-  if (field.marked) {
-    return;
-  }
 
-  console.log("test");
-  
-  socket.emit('showField123', x, y, (response) => {
-    console.log("backField");
-    if(response.status == "lost") {
-          $(".score").innerHTML = `You Lost!`;
-          $(".sapper").onclick = null;
-          start = false;
+  socket.emit("showField", x, y, (response) => {
+    if (response.status === "lost") {
+      $(".score").innerHTML = `You Lost!`;
+      $(".sapper").onclick = null;
+      start = false;
     }
 
     for (const [key, value] of Object.entries(response.result)) {
-      console.log(`${key}: ${value}`);
       const div = document.getElementById(key);
       div.classList.remove("hide");
-      if(value == -1)
-        div.classList.add("mine");
-      else if(value != 0)
-        div.classList.add("mine"+value);
+      if (value === -1) div.classList.add("mine");
+      else if (value !== 0) div.classList.add("mine" + value);
     }
-    
   });
-  
+
   showScore();
 }
 
@@ -152,53 +105,43 @@ async function initMine() {
     throw new Error("The number of mines is too high.");
 
   let field_ignored = [[default_mines.y, default_mines.x]];
-  
+
   offsetMap.forEach((off) => {
     const chech_Y = default_mines.y + off[0];
     const chech_X = default_mines.x + off[1];
     field_ignored.push([chech_Y, chech_X]);
   });
-  
-  return new Promise((resolve) => {
-    socket.emit('initMine', numberMine, field_ignored, (response) => {
-      console.log("back - mines");
-      map = response;
-      resolve();
-    });
-  });
-} 
 
-function ShowMap() {
-  map.forEach((row) => {
-    row.forEach((field) => {
-      let div = document.getElementById(field.field);
-      if (field.mine || field.closer_mine > 0) {
-        div.classList.remove("hide");
-        if (field.mine) {
-          div.classList.add("mine");
-        } else {
-          div.classList.add("mine" + field.closer_mine);
-        }
+  return new Promise((resolve, reject) => {
+    socket.emit("initMine", numberMine, field_ignored, (response) => {
+      if (response) {
+        resolve();
+      } else {
+        reject(new Error("Failed to initialize mines on the server"));
       }
     });
   });
 }
 
+function showScore() {
+  socket.emit("showScore", (response) => {
+    if (response.status) {
+      $(".score").innerHTML = `You Won!`;
+      $(".sapper").onclick = null;
+      start = false;
+    } else if (start || startTime === 0) {
+      $(".score-fields").innerHTML = `Fields: ${response.fields}`;
+      $(".score-flags").innerHTML = `Flags: ${response.flags}`;
+    }
+  });
+}
+
 setInterval(() => {
-  if(start) {
+  if (start) {
     let currentTime = new Date();
-    let second = ((currentTime - startTime)/1000).toFixed(0);
+    let second = ((currentTime - startTime) / 1000).toFixed(0);
     $(".time").innerHTML = second.padStart(3, "0");
   }
 }, 500);
 
 init();
-
-//initMine();
-
-//ShowMap();
-
-socket.on("loadMap", (serverMap) => {
-  map = serverMap;
-  console.log("jest");
-});
