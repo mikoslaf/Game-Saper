@@ -2,9 +2,9 @@
 //setCookie("sessionId", uuid())
 
 const socket = io("https:///");
-const sizeX = 20;
-const sizeY = 20;
-const numberMine = 50;
+const sizeX = 5;
+const sizeY = 5;
+const numberMine = 20;
 const $ = (n) => document.querySelector(n);
 const offsetMap = [
   [-1, -1],
@@ -106,8 +106,8 @@ function showAllMines() {
 
 async function showField(x, y) {
   const field = map[y][x];
-  //console.log(x, y, field);
-
+  console.log("field", x, y);
+  
   if (!default_mines.isMineGenarated) {
     default_mines.isMineGenarated = true;
     default_mines.x = x;
@@ -121,51 +121,29 @@ async function showField(x, y) {
   if (field.marked) {
     return;
   }
-  if (field.mine) {
-    showAllMines();
-    $(".score").innerHTML = `You Lost!`;
-    $(".sapper").onclick = null;
-    start = false;
-    return false;
-  } else if (field.closer_mine == 0) {
-    if (!field.show) {
-      numberHiddenFields--;
-    }
-    field.show = true;
-    const element = document.getElementById(field.field);
-    element.classList.remove("hide");
 
-    offsetMap.forEach((off) => {
-      const chech_Y = y + off[0];
-      const chech_X = x + off[1];
-
-      if (
-        chech_X >= 0 &&
-        chech_Y >= 0 &&
-        chech_X < sizeX &&
-        chech_Y < sizeY
-      ) {
-        const local_field = map[chech_Y][chech_X];
-        if (local_field.closer_mine == 0 && !local_field.show)
-          showField(chech_X, chech_Y);
-        else if (!local_field.show) {
-          numberHiddenFields--;
-          local_field.show = true;
-          const localElement = document.getElementById(local_field.field);
-          localElement.classList.add("mine" + local_field.closer_mine);
-          localElement.classList.remove("hide");
-        }
-      }
-    });
-  } else {
-    if (!field.show) {
-      numberHiddenFields--;
-      field.show = true;
-      const element = document.getElementById(field.field);
-      element.classList.remove("hide");
-      element.classList.add("mine" + field.closer_mine);
+  console.log("test");
+  
+  socket.emit('showField123', x, y, (response) => {
+    console.log("backField");
+    if(response.status == "lost") {
+          $(".score").innerHTML = `You Lost!`;
+          $(".sapper").onclick = null;
+          start = false;
     }
-  }
+
+    for (const [key, value] of Object.entries(response.result)) {
+      console.log(`${key}: ${value}`);
+      const div = document.getElementById(key);
+      div.classList.remove("hide");
+      if(value == -1)
+        div.classList.add("mine");
+      else if(value != 0)
+        div.classList.add("mine"+value);
+    }
+    
+  });
+  
   showScore();
 }
 
@@ -181,41 +159,14 @@ async function initMine() {
     field_ignored.push([chech_Y, chech_X]);
   });
   
-  
   return new Promise((resolve) => {
     socket.emit('initMine', numberMine, field_ignored, (response) => {
-      console.log("back");
+      console.log("back - mines");
       map = response;
       resolve();
     });
   });
 } 
-  // while (count_mine > 0) {
-  //   const x = Math.floor(Math.random() * sizeX);
-  //   const y = Math.floor(Math.random() * sizeY);
-    
-  //   //console.log(field_ignored.filter(e=>e==[y,x]));
-  //   if (
-  //     !map[y][x].mine &&
-  //     field_ignored.filter((e) => e[0] == y && e[1] == x).length == 0
-  //   ) {
-  //     map[y][x].mine = true;
-  //     count_mine--;
-  //     initNumberOfMines(x, y);
-  //   }
-  // }
-
-
-function initNumberOfMines(x, y) {
-  offsetMap.forEach((off) => {
-    const chech_Y = y + off[0];
-    const chech_X = x + off[1];
-
-    if (chech_X >= 0 && chech_Y >= 0 && chech_X < sizeX && chech_Y < sizeY) {
-      map[chech_Y][chech_X].closer_mine++;
-    }
-  });
-}
 
 function ShowMap() {
   map.forEach((row) => {

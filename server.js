@@ -47,26 +47,9 @@ const offsetMap = [
   [1, 1],
 ];
 
-// CID('idsoketu') z ClientDB.filter(e=>e.socketid == 'idsoketu')[0]
-const CID = (socketid) => clientDB.filter((e) => e.socketid == socketid)[0];
-const KID = (idKlienta) => clientDB.filter((e) => e.id == idKlienta)[0];
-// function CID1(socketid){
-//     return ClientDB.filter(e=>e.socketid == socketid)[0];
-// }
-
-function findClientById(socketList, clientId) {
-  for (const [socketId, socket] of socketList.entries()) {
-    if (socket.data.clientId === clientId) {
-      return socket;
-    }
-  }
-  return null; // Zwróć null, jeśli klient o danym id nie został znaleziony
-}
-
 io.on("connection", (client) => {
   console.log("Klient nawiązał połączenie", client.id);
 
-  
   if(!(client.id in clientDB)) {
     clientDB = {...clientDB, [client.id]: 
       {
@@ -111,15 +94,95 @@ io.on("connection", (client) => {
     callaback(clientDB[client.id].map)
     //io.sockets.emit("loadMap", clientDB[client.id].map);
   });
-});
 
-/**
- * funkcja licznika odwiedzin dostępna pod adresem http://host/licznik
- *
- * @param {Request} - dane które przychodzą
- * @param {Response} - dane wyjściowe
- */
-app.get("/licznik", (req, resp) => {
-  // odpowiedź serwera z json, w nim liczba odwiedzin od startu serwera
-  //resp.send({ licznik: ++LicznikOdw });
+  client.on("updateMapElement", (x, y, key, value) => {
+    clientDB[client.id].map[y][x][key] = value;
+  });
+
+  // client.on("showField123", (x, y, callaback) => {
+
+  //   console.log("showField - start");
+
+  //   const data = showField(x, y);
+
+  //   console.log(data);
+
+  //   callaback(data)
+  // });
+  
+  // function showField(x, y, numberHiddenFields = 0, result = {}) {
+  //   const field = clientDB[client.id].map[y][x];
+
+  //     if (field.mine) {
+
+  //       clientDB[client.id].map.forEach((y) => {
+  //         y.forEach((e) => {
+  //           if (e.mine && !e.marked) {
+  //             result[e.field] = -1;
+  //             // const element = document.getElementById(e.field);
+  //             // element.classList.remove("hide");
+  //             // element.classList.add("mine");
+  //           }
+  //         });
+  //       });
+
+  //       return {
+  //         status: "lost",
+  //         result: result
+  //       }
+  //     } else if (field.closer_mine == 0) {
+  //       if (!field.show) {
+  //         numberHiddenFields--;
+  //       }
+  //       field.show = true;
+  //       // const element = document.getElementById(field.field);
+  //       // element.classList.remove("hide");
+  //       result[field.field] = 0;
+    
+  //       offsetMap.forEach((off) => {
+  //         const chech_Y = y + off[0];
+  //         const chech_X = x + off[1];
+    
+  //         if (
+  //           chech_X >= 0 &&
+  //           chech_Y >= 0 &&
+  //           chech_X < sizeX &&
+  //           chech_Y < sizeY
+  //         ) {
+  //           const local_field = clientDB[client.id].map[chech_Y][chech_X];
+  //           if (local_field.closer_mine == 0 && !local_field.show && !local_field.marked) {
+  //             const data = showField(chech_X, chech_Y, numberHiddenFields, result);
+  //             result = {...result, ...data.result}
+  //           }
+  //           else if (!local_field.show) {
+  //             numberHiddenFields--;
+  //             local_field.show = true;
+  //             result[local_field.field] = local_field.closer_mine;
+  //             // const localElement = document.getElementById(local_field.field);
+  //             // localElement.classList.add("mine" + local_field.closer_mine);
+  //             // localElement.classList.remove("hide");
+  //           }
+  //         }
+  //       });
+
+  //       return {
+  //         status: "play",
+  //         result: result
+  //       }
+  //     } else {
+  //       if (!field.show) {
+  //         numberHiddenFields--;
+  //         field.show = true;
+  //         result[field.field] = field.closer_mine;
+  //         // const element = document.getElementById(field.field);
+  //         // element.classList.remove("hide");
+  //         // element.classList.add("mine" + field.closer_mine);
+  //         return {
+  //           status: "play",
+  //           result: result
+  //         }
+  //       }
+  //     }
+  // }
+
 });
