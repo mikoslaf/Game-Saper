@@ -4,20 +4,40 @@ require("dotenv").config();
 
 let fs = require("fs");
 let https = require("https");
-let privateKey = fs.readFileSync("key.key", "utf8");
-let certificate = fs.readFileSync("key.crt", "utf8");
+let http = require("http");
 
-let credentials = { key: privateKey, cert: certificate };
+let privateKey = "";
+let certificate = "";
+
+if (fs.existsSync("key.key")) {
+  privateKey = fs.readFileSync("key.key", "utf8");
+} else {
+  console.log("File key.key does not exist");
+}
+
+if (fs.existsSync("key.crt")) {
+  certificate = fs.readFileSync("key.crt", "utf8");
+} else {
+  console.log("File key.crt does not exist");
+}
 
 const app = express();
-let server = https.createServer(credentials, app);
+let server;
+
+if (privateKey && certificate) {
+  let credentials = { key: privateKey, cert: certificate };
+  server = https.createServer(credentials, app);
+  console.log("HTTPS server created");
+} else {
+  server = http.createServer(app);
+  console.log("HTTP server created");
+}
 
 app.use(express.static(__dirname + "/public"));
 
-server.listen(process.env.porthttps, () => {
-  console.log(
-    "Server started: https://localhost:" + process.env.porthttps + "/"
-  );
+const port = process.env.porthttps || 3000;
+server.listen(port, () => {
+  console.log(`Server started: http${privateKey && certificate ? 's' : ''}://localhost:${port}/`);
 });
 
 const io = socketio(server, {
