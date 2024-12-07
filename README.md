@@ -1,6 +1,6 @@
-# Game Sapper
+# Project Saper
 
-Game Sapper is a web-based implementation of the classic Minesweeper game. This project is built using Node.js, Express, and WebSockets. The game logic is handled server-side, while the client-side is responsible for displaying data and sending events related to player moves.
+Saper is a web-based implementation of the classic Minesweeper game. This project is built using Node.js, Express, and WebSockets. The game logic is handled server-side, while the client-side is responsible for displaying data and sending events related to player moves.
 
 ## Features
 
